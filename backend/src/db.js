@@ -34,6 +34,13 @@ function getPool() {
   return pool;
 }
 
+async function ensureColumn(db, table, column, definition) {
+  const [rows] = await db.query('SHOW COLUMNS FROM ?? LIKE ?', [table, column]);
+  if (!rows.length) {
+    await db.query(`ALTER TABLE ${table} ADD COLUMN ${definition}`);
+  }
+}
+
 async function initDb() {
   const db = getPool();
 
@@ -86,6 +93,10 @@ async function initDb() {
       afr DECIMAL(6,2),
       short_fuel_trim DECIMAL(6,2),
       long_fuel_trim DECIMAL(6,2),
+      latitude DECIMAL(9,6),
+      longitude DECIMAL(9,6),
+      ambient_temp INT,
+      ambient_pressure INT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       CONSTRAINT fk_telematics_vehicle
         FOREIGN KEY (vehicle_id)
@@ -93,6 +104,26 @@ async function initDb() {
         ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
   `);
+
+  await ensureColumn(
+    db,
+    'telematics_data',
+    'latitude',
+    'latitude DECIMAL(9,6)'
+  );
+  await ensureColumn(
+    db,
+    'telematics_data',
+    'longitude',
+    'longitude DECIMAL(9,6)'
+  );
+  await ensureColumn(db, 'telematics_data', 'ambient_temp', 'ambient_temp INT');
+  await ensureColumn(
+    db,
+    'telematics_data',
+    'ambient_pressure',
+    'ambient_pressure INT'
+  );
 
   return db;
 }

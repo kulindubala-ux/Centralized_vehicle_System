@@ -21,7 +21,11 @@ const comparisonMetrics = [
   { key: 'engine_load', label: 'Engine Load (%)', suffix: '%' },
   { key: 'throttle', label: 'Throttle (%)', suffix: '%' },
   { key: 'afr', label: 'AFR', suffix: '' },
-  { key: 'lambda', label: 'Lambda', suffix: '' }
+  { key: 'lambda', label: 'Lambda', suffix: '' },
+  { key: 'ambient_temp', label: 'Ambient Temp (°C)', suffix: ' °C' },
+  { key: 'ambient_pressure', label: 'Ambient Pressure (hPa)', suffix: ' hPa' },
+  { key: 'latitude', label: 'Latitude', suffix: '' },
+  { key: 'longitude', label: 'Longitude', suffix: '' }
 ];
 
 const metricThresholds = {
@@ -31,7 +35,9 @@ const metricThresholds = {
   engine_load: { low: 15, high: 90 },
   throttle: { low: 5, high: 95 },
   afr: { low: 13.5, high: 15.5 },
-  lambda: { low: 0.92, high: 1.08 }
+  lambda: { low: 0.92, high: 1.08 },
+  ambient_temp: { low: -10, high: 55 },
+  ambient_pressure: { low: 960, high: 1040 }
 };
 
 const vehicleDetailFields = [
@@ -50,6 +56,29 @@ const vehicleDetailFields = [
       vehicle ? new Date(vehicle.createdAt).toLocaleString() : '—'
   }
 ];
+
+const environmentFields = [
+  { key: 'ambient_temp', label: 'Ambient temp (°C)', suffix: ' °C' },
+  {
+    key: 'ambient_pressure',
+    label: 'Ambient pressure (hPa)',
+    suffix: ' hPa'
+  },
+  { key: 'latitude', label: 'Latitude', suffix: '' },
+  { key: 'longitude', label: 'Longitude', suffix: '' }
+];
+
+const gaugeConfigs = [
+  { key: 'speed', label: 'Speed', unit: 'km/h', max: 160 },
+  { key: 'rpm', label: 'RPM', unit: '', max: 6000 },
+  { key: 'engine_load', label: 'Engine load', unit: '%', max: 100 },
+  { key: 'throttle', label: 'Throttle', unit: '%', max: 100 }
+];
+
+const getGaugePercent = (value, max) => {
+  if (value === undefined || value === null) return 0;
+  return Math.min(100, Math.max(0, Math.round((value / max) * 100)));
+};
 
 const formatMetricValue = (value, suffix = '') => {
   if (value === undefined || value === null || Number.isNaN(value)) {
@@ -93,11 +122,17 @@ function App() {
     dataOnly: false,
     sort: 'recent'
   });
+  const [comparisonModal, setComparisonModal] = useState(null);
 
   const selectedVehicle = useMemo(
     () => vehicles.find((v) => v.id === selectedVehicleId) || null,
     [vehicles, selectedVehicleId]
   );
+
+  const modalVehicle = useMemo(() => {
+    if (!comparisonModal) return null;
+    return vehicles.find((vehicle) => vehicle.id === comparisonModal.vehicleId) || null;
+  }, [comparisonModal, vehicles]);
 
   const latestTelemetry = useMemo(() => {
     if (telemetry.length) return telemetry[0];
@@ -268,12 +303,23 @@ function App() {
     setVehicleFilters((prev) => ({ ...prev, ...changes }));
   };
 
+  const openVehicleModal = (vehicle) => {
+    if (!vehicle.latestData) return;
+    setComparisonModal({ vehicleId: vehicle.id });
+  };
+
+  const closeVehicleModal = () => setComparisonModal(null);
+
   const handleAuthSubmit = async (e) => {
     e.preventDefault();
     setLoadingAuth(true);
     try {
       const endpoint = authMode === 'login' ? 'login' : 'register';
-      const { data } = await api.post(`/api/auth/${endpoint}`, authForm);
+      const payload =
+        authMode === 'login'
+          ? { email: authForm.email, password: authForm.password }
+          : authForm;
+      const { data } = await api.post(`/api/auth/${endpoint}`, payload);
       persistSession(data.token, data.user);
       setAuthForm(AUTH_DEFAULT);
       showStatus('success', `Welcome ${data.user.name}!`);
@@ -582,7 +628,11 @@ function App() {
                               <th>RPM</th>
                               <th>Coolant (°C)</th>
                               <th>Throttle (%)</th>
-                              <th>Lambda</th>
+                          <th>Lambda</th>
+                          <th>Ambient Temp (°C)</th>
+                          <th>Ambient Pressure (hPa)</th>
+                          <th>Latitude</th>
+                          <th>Longitude</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -595,7 +645,11 @@ function App() {
                                 <td>{row.rpm ?? '—'}</td>
                                 <td>{row.coolant_temp ?? '—'}</td>
                                 <td>{row.throttle ?? '—'}</td>
-                                <td>{row.lambda ?? '—'}</td>
+                              <td>{row.lambda ?? '—'}</td>
+                              <td>{row.ambient_temp ?? '—'}</td>
+                              <td>{row.ambient_pressure ?? '—'}</td>
+                              <td>{row.latitude ?? '—'}</td>
+                              <td>{row.longitude ?? '—'}</td>
                               </tr>
                             ))}
                           </tbody>
@@ -650,6 +704,20 @@ function App() {
                       </div>
                     ))}
       </div>
+
+                  <div className="environment-grid">
+                    {environmentFields.map((field) => (
+                      <div className="environment-card" key={field.key}>
+                        <span>{field.label}</span>
+                        <strong>
+                          {formatMetricValue(
+                            latestTelemetry?.[field.key],
+                            field.suffix
+                          )}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
                 </>
               )}
             </div>
@@ -674,7 +742,11 @@ function App() {
                     </thead>
                     <tbody>
                       {vehicles.map((vehicle) => (
-                        <tr key={vehicle.id}>
+                        <tr
+                          key={vehicle.id}
+                          onClick={() => openVehicleModal(vehicle)}
+                          className={vehicle.latestData ? 'clickable' : ''}
+                        >
                           <td>
                             <div className="vehicle-cell">
                               <strong>{vehicle.name}</strong>
@@ -747,6 +819,65 @@ function App() {
               </div>
             )}
           </section>
+        )}
+
+        {comparisonModal && modalVehicle && modalVehicle.latestData && (
+          <div className="modal-overlay" onClick={closeVehicleModal}>
+            <div
+              className="modal-content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <header className="modal-header">
+                <div>
+                  <h2>{modalVehicle.name}</h2>
+                  <span>ID: {modalVehicle.vehicleIdentifier}</span>
+                </div>
+                <button className="ghost-btn" onClick={closeVehicleModal}>
+                  Close
+                </button>
+              </header>
+
+              <div className="gauges-grid">
+                {gaugeConfigs.map((cfg) => {
+                  const value = modalVehicle.latestData[cfg.key];
+                  const percent = getGaugePercent(value, cfg.max);
+                  return (
+                    <div className="gauge-card" key={cfg.key}>
+                      <div
+                        className="gauge"
+                        style={{
+                          '--gauge-angle': `${percent * 3.6}deg`,
+                          '--gauge-color': percent > 85 ? '#b91c1c' : '#2563eb'
+                        }}
+                      >
+                        <div className="gauge-arc" />
+                        <div className="gauge-center">
+                          <span>{cfg.label}</span>
+                          <strong>
+                            {value ?? '—'} {cfg.unit}
+                          </strong>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="digital-grid">
+                {environmentFields.map((field) => (
+                  <div className="digital-card" key={field.key}>
+                    <span>{field.label}</span>
+                    <strong>
+                      {formatMetricValue(
+                        modalVehicle.latestData[field.key],
+                        field.suffix
+                      )}
+                    </strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
         )}
       </main>
     </div>

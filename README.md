@@ -25,6 +25,15 @@ npm install
 npm run dev                      # or npm start for production
 ```
 
+## Run frontend + backend together
+
+From the repository root:
+
+```bash
+npm install          # only needed once to get concurrently
+npm run dev          # starts backend and frontend simultaneously
+```
+
 Backend configuration now lives in `backend/src/config.js`. Update:
 
 | Config path | Description |

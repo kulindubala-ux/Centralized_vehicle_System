@@ -1,0 +1,26 @@
+{
+  "name": "centralized_vehicle_system",
+  "version": "1.0.0",
+  "description": "Single repository that holds the backend API/MQTT ingestor (`backend/`) and the React dashboard (`frontend/`) for a centralized vehicle management platform.",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run dev --prefix backend\" \"npm run dev --prefix frontend\"",
+    "start": "concurrently \"npm start --prefix backend\" \"npm run dev --prefix frontend\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/venura449/Centralized_vehicle_System.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/venura449/Centralized_vehicle_System/issues"
+  },
+  "homepage": "https://github.com/venura449/Centralized_vehicle_System#readme",
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}

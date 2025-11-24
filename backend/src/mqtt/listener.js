@@ -20,7 +20,11 @@ const TELEMETRY_FIELDS = [
   'wideband_voltage',
   'afr',
   'short_fuel_trim',
-  'long_fuel_trim'
+  'long_fuel_trim',
+  'latitude',
+  'longitude',
+  'ambient_temp',
+  'ambient_pressure'
 ];
 
 function startMqttListener() {
