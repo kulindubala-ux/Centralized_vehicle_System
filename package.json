@@ -10,16 +10,16 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/venura449/Centralized_vehicle_System.git"
+    "url": "git+https://github.com/kulindubala-ux/Centralized_vehicle_System.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "bugs": {
-    "url": "https://github.com/venura449/Centralized_vehicle_System/issues"
+    "url": "https://github.com/kulindubala-ux//Centralized_vehicle_System/issues"
   },
-  "homepage": "https://github.com/venura449/Centralized_vehicle_System#readme",
+  "homepage": "https://github.com/kulindubala-ux//Centralized_vehicle_System#readme",
   "devDependencies": {
     "concurrently": "^9.2.1"
   }
